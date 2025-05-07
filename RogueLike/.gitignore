@@ -10,7 +10,7 @@
 /[Bb]uilds/
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
-/Assets/Assets/*
+/Assets/ArGame/Assets/*
 !*.zip
 
 
