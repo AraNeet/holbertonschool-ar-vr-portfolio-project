@@ -14,7 +14,6 @@ public class AreaManager : MonoBehaviour
 
     [Header("Prefabs")]
     [SerializeField] private GameObject pointPrefab;
-    [SerializeField] private GameObject planePrefab;
     [SerializeField] private LineRenderer rayVisualizer;
 
     [Header("UI Elements")]
@@ -50,9 +49,19 @@ public class AreaManager : MonoBehaviour
 
     void Update()
     {
-        if (isPlacingPoints && Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+        if (isPlacingPoints)
         {
-            PlacePoint();
+            if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+            {
+                PlacePointUsingScreenPosition(Input.GetTouch(0).position);
+            }
+            // Allow placing points with mouse click for editor testing
+#if UNITY_EDITOR
+            else if (Input.GetMouseButtonDown(0))
+            {
+                PlacePointUsingScreenPosition(Input.mousePosition);
+            }
+#endif
 
             // After placing 4 points, create the plane
             if (placedPoints.Count >= 4)
@@ -65,29 +74,31 @@ public class AreaManager : MonoBehaviour
         }
     }
 
-    private void PlacePoint()
+    private void PlacePointUsingScreenPosition(Vector2 screenPosition)
     {
-        Vector2 touchPosition = Input.GetTouch(0).position;
         List<ARRaycastHit> hits = new List<ARRaycastHit>();
 
         // Show ray visualization for debugging
         if (rayVisualizer != null)
         {
-            ShowRayVisualizer(touchPosition);
+            ShowRayVisualizer(screenPosition);
         }
 
-        if (raycastManager.Raycast(touchPosition, hits, TrackableType.PlaneWithinPolygon))
+        if (raycastManager.Raycast(screenPosition, hits, TrackableType.PlaneWithinPolygon))
         {
             // Get the first hit
             ARRaycastHit hit = hits[0];
 
             // Debug visualization in Scene view
             Debug.DrawRay(arCamera.transform.position,
-                         arCamera.ScreenPointToRay(touchPosition).direction * 10,
+                         arCamera.ScreenPointToRay(screenPosition).direction * 10,
                          Color.red, 3f);
 
             // Create the point exactly at hit position
             GameObject point = Instantiate(pointPrefab, hit.pose.position, hit.pose.rotation);
+            
+            // Set scale to 0.5
+            point.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
 
             // Add visual feedback
             StartCoroutine(PulsePointOnCreation(point));
@@ -166,8 +177,27 @@ public class AreaManager : MonoBehaviour
         }
         center /= placedPoints.Count;
 
-        // Create plane
-        createdPlane = Instantiate(planePrefab, center, Quaternion.identity);
+        // Create plane primitive instead of using prefab
+        createdPlane = GameObject.CreatePrimitive(PrimitiveType.Plane);
+        createdPlane.transform.position = center;
+        
+        // Set plane material (optional - can be customized)
+        Renderer renderer = createdPlane.GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            // Set a semi-transparent material
+            Material material = new Material(Shader.Find("Standard"));
+            material.color = new Color(0.0f, 0.5f, 1.0f, 0.5f); // Semi-transparent blue
+            material.SetFloat("_Mode", 3); // Transparent mode
+            material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            material.SetInt("_ZWrite", 0);
+            material.DisableKeyword("_ALPHATEST_ON");
+            material.EnableKeyword("_ALPHABLEND_ON");
+            material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+            material.renderQueue = 3000;
+            renderer.material = material;
+        }
 
         // Calculate dimensions and orientation
         CalculatePlaneTransform();
@@ -188,16 +218,12 @@ public class AreaManager : MonoBehaviour
         Vector3 p2 = placedPoints[2].transform.position;
         Vector3 p3 = placedPoints[3].transform.position;
 
-        // Calculate two adjacent edges
-        Vector3 edge1 = p1 - p0;
-        Vector3 edge2 = p3 - p0;
-
         // Calculate center position more accurately
         Vector3 center = (p0 + p1 + p2 + p3) / 4f;
         createdPlane.transform.position = center;
 
         // Calculate normal vector (plane orientation)
-        Vector3 normal = Vector3.Cross(edge1, edge2).normalized;
+        Vector3 normal = Vector3.Cross(p1 - p0, p3 - p0).normalized;
 
         // Handle case when points are coplanar and normal is zero
         if (normal.magnitude < 0.001f)
@@ -213,7 +239,7 @@ public class AreaManager : MonoBehaviour
         }
 
         // Determine orientation
-        Vector3 forward = edge1.normalized;
+        Vector3 forward = (p1 - p0).normalized;
         Vector3 up = normal;
         Vector3 right = Vector3.Cross(up, forward).normalized;
         forward = Vector3.Cross(right, up).normalized;
@@ -222,12 +248,40 @@ public class AreaManager : MonoBehaviour
         Quaternion rotation = Quaternion.LookRotation(forward, up);
         createdPlane.transform.rotation = rotation;
 
-        // Calculate width and height
-        float width = Vector3.Distance(p0, p1);
-        float height = Vector3.Distance(p0, p3);
+        // Calculate dimensions by projecting points onto the plane
+        float maxWidth = 0f;
+        float maxHeight = 0f;
 
-        // Apply scale (with thin y dimension for a plane)
-        createdPlane.transform.localScale = new Vector3(width, 0.01f, height);
+        // Project each point to the plane's local space
+        Vector3[] localPoints = new Vector3[4];
+        localPoints[0] = createdPlane.transform.InverseTransformPoint(p0);
+        localPoints[1] = createdPlane.transform.InverseTransformPoint(p1);
+        localPoints[2] = createdPlane.transform.InverseTransformPoint(p2);
+        localPoints[3] = createdPlane.transform.InverseTransformPoint(p3);
+
+        // Find the min/max bounds in local space
+        float minX = float.MaxValue, maxX = float.MinValue;
+        float minZ = float.MaxValue, maxZ = float.MinValue;
+
+        foreach (Vector3 pt in localPoints)
+        {
+            minX = Mathf.Min(minX, pt.x);
+            maxX = Mathf.Max(maxX, pt.x);
+            minZ = Mathf.Min(minZ, pt.z);
+            maxZ = Mathf.Max(maxZ, pt.z);
+        }
+
+        // Calculate width and height based on local bounds
+        float width = maxX - minX;
+        float height = maxZ - minZ;
+
+        // Adjust center position to be in the middle of the local bounds
+        Vector3 localCenter = new Vector3((minX + maxX) / 2f, 0, (minZ + maxZ) / 2f);
+        Vector3 worldCenterOffset = createdPlane.transform.TransformPoint(localCenter) - createdPlane.transform.position;
+        createdPlane.transform.position += worldCenterOffset;
+
+        // Apply scale (Unity plane is 10x10 units by default)
+        createdPlane.transform.localScale = new Vector3(width / 10f, 1f, height / 10f);
 
         // Log results for debugging
         Debug.Log($"Created plane with dimensions: {width:F2}m x {height:F2}m");
