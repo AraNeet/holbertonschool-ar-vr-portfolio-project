@@ -18,6 +18,10 @@ public class DungeonCubeManager : MonoBehaviour
     [SerializeField] private float cubeSize = 1.0f;
     [SerializeField] private float placementHeight = 1.0f; // Height above ground
 
+    [Header("Player Settings")]
+    [SerializeField] private GameObject playerPrefab; // Reference to player prefab
+    private GameObject playerInstance; // Instance of the player
+
     [Header("UI References")]
     [SerializeField] private GameObject placementIndicator;
     [SerializeField] private GameObject instructionPanel;
@@ -65,6 +69,16 @@ public class DungeonCubeManager : MonoBehaviour
                 PlaceCube(hits[0].pose);
             }
         }
+#if UNITY_EDITOR
+        // Mouse input for editor testing
+        if (Input.GetMouseButtonDown(0))
+        {
+            if (raycastManager.Raycast(Input.mousePosition, hits, TrackableType.Planes))
+            {
+                PlaceCube(hits[0].pose);
+            }
+        }
+#endif
     }
 
     private void UpdatePlacementIndicator()
@@ -94,8 +108,11 @@ public class DungeonCubeManager : MonoBehaviour
         position.y += placementHeight;
         Pose adjustedPose = new Pose(position, pose.rotation);
 
-        // Create anchor
-        cubeAnchor = anchorManager.AddAnchor(adjustedPose);
+        // Create anchor using the recommended approach
+        GameObject anchorObject = new GameObject("DungeonAnchor");
+        anchorObject.transform.position = adjustedPose.position;
+        anchorObject.transform.rotation = adjustedPose.rotation;
+        cubeAnchor = anchorObject.AddComponent<ARAnchor>();
 
         if (cubeAnchor != null)
         {
@@ -158,6 +175,36 @@ public class DungeonCubeManager : MonoBehaviour
         if (dungeonGen != null)
         {
             dungeonGen.GenerateDungeon();
+            
+            // Spawn player in the first room after dungeon is generated
+            SpawnPlayer(dungeonGen);
         }
+    }
+    
+    private void SpawnPlayer(DungeonGenerator dungeonGen)
+    {
+        // Check if player prefab is assigned
+        if (playerPrefab == null)
+        {
+            Debug.LogError("Player prefab is not assigned!");
+            return;
+        }
+        
+        // Destroy any existing player instance
+        if (playerInstance != null)
+        {
+            Destroy(playerInstance);
+        }
+        
+        // Get the first room position from the dungeon generator
+        Vector3 spawnPosition = dungeonGen.GetFirstRoomPosition();
+        
+        // Instantiate the player at the spawn position
+        playerInstance = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
+        
+        // Parent the player to the dungeon cube to maintain proper scaling and positioning
+        playerInstance.transform.SetParent(dungeonCube.transform);
+        
+        Debug.Log("Player spawned at: " + spawnPosition);
     }
 }

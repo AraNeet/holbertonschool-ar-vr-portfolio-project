@@ -99,15 +99,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gridSize: 5
   cellSize: 0.2
-  roomPrefab: {fileID: 0}
-  corridorPrefab: {fileID: 0}
+  roomPrefab: {fileID: 6638742607367543590, guid: 6b91e5923e9c7a34088dea575f2e6101,
+    type: 3}
+  corridorPrefab: {fileID: 6638742607367543590, guid: 6b91e5923e9c7a34088dea575f2e6101,
+    type: 3}
   enemyPrefab: {fileID: 0}
   treasurePrefab: {fileID: 0}
-  roomDensity: 0.3
   minRooms: 10
   maxRooms: 20
   enemySpawnChance: 0.3
   treasureSpawnChance: 0.2
+  debug: 1
+  lineRendererMaterial: {fileID: 2100000, guid: 0089caa46e9733d4e9d34ad8c2e1e2e2,
+    type: 2}
+  lineWidth: 0.01
 --- !u!1 &914036774099672088
 GameObject:
   m_ObjectHideFlags: 0

@@ -12,15 +12,21 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] private GameObject treasurePrefab;
 
     [Header("Generation Parameters")]
-    [SerializeField] private float roomDensity = 0.3f; // 0-1 value for how dense the dungeon is
     [SerializeField] private int minRooms = 10;
     [SerializeField] private int maxRooms = 20;
     [SerializeField] private float enemySpawnChance = 0.3f;
     [SerializeField] private float treasureSpawnChance = 0.2f;
 
+    [Header("Debug")]
+    [SerializeField] private bool debug = false; // Enable debug visualization
+    [SerializeField] private Material lineRendererMaterial; // Material for the line renderers
+    [SerializeField] private float lineWidth = 0.01f; // Width of debug lines
+
     // Internal data structure for the dungeon
     private bool[,,] occupiedCells;
     private List<Room> rooms = new List<Room>();
+    private Transform debugContainer;
+    private bool debugVisualsCreated = false;
 
     // Simplified room class for tracking
     private class Room
@@ -60,6 +66,9 @@ public class DungeonGenerator : MonoBehaviour
             }
         }
 
+        // Clear any existing debug visuals
+        ClearDebugVisuals();
+
         // Generate random rooms
         int roomCount = Random.Range(minRooms, maxRooms + 1);
 
@@ -78,6 +87,12 @@ public class DungeonGenerator : MonoBehaviour
 
         // Add enemies and treasures
         PopulateDungeon();
+
+        // Create debug visualization if enabled
+        if (debug)
+        {
+            CreateDebugVisuals();
+        }
     }
 
     private void TryPlaceRoom(Transform parent)
@@ -332,5 +347,336 @@ public class DungeonGenerator : MonoBehaviour
 
         // Random rotation
         treasure.transform.localRotation = Quaternion.Euler(0, Random.Range(0, 360), 0);
+    }
+
+    private void OnDrawGizmos()
+    {
+        // Keep this for editor visualization, but the primary visualization will be LineRenderers
+        if (!debug || occupiedCells == null || Application.isPlaying)
+            return;
+            
+        // Draw the grid for visual debugging in editor only
+        DrawDebugGrid();
+    }
+    
+    private void Update()
+    {
+        // Update debug visuals based on debug flag
+        if (debug && !debugVisualsCreated && occupiedCells != null)
+        {
+            CreateDebugVisuals();
+        }
+        else if (!debug && debugVisualsCreated)
+        {
+            ClearDebugVisuals();
+        }
+    }
+
+    private void CreateDebugVisuals()
+    {
+        // Clear any existing debug visuals
+        ClearDebugVisuals();
+
+        // Create container for debug visualizations
+        debugContainer = new GameObject("DebugVisuals").transform;
+        debugContainer.SetParent(transform);
+        debugContainer.localPosition = Vector3.zero;
+
+        // Draw grid outline
+        CreateGridOutline();
+
+        // Draw axes
+        CreateAxes();
+
+        // Draw cell outlines
+        CreateCellVisuals();
+
+        debugVisualsCreated = true;
+    }
+
+    private void ClearDebugVisuals()
+    {
+        // Find and destroy any existing debug container
+        Transform existingDebugContainer = transform.Find("DebugVisuals");
+        if (existingDebugContainer != null)
+        {
+            Destroy(existingDebugContainer.gameObject);
+        }
+
+        debugVisualsCreated = false;
+    }
+
+    private void CreateGridOutline()
+    {
+        // Create the grid outline using LineRenderer
+        GameObject gridOutline = new GameObject("GridOutline");
+        gridOutline.transform.SetParent(debugContainer);
+        gridOutline.transform.localPosition = Vector3.zero;
+
+        LineRenderer lineRenderer = gridOutline.AddComponent<LineRenderer>();
+        SetupLineRenderer(lineRenderer, Color.yellow, lineWidth * 2);
+
+        // Calculate the grid corners
+        float halfSize = gridSize * cellSize / 2;
+        Vector3[] corners = new Vector3[8];
+        corners[0] = new Vector3(-halfSize, -halfSize, -halfSize);
+        corners[1] = new Vector3(halfSize, -halfSize, -halfSize);
+        corners[2] = new Vector3(halfSize, -halfSize, halfSize);
+        corners[3] = new Vector3(-halfSize, -halfSize, halfSize);
+        corners[4] = new Vector3(-halfSize, halfSize, -halfSize);
+        corners[5] = new Vector3(halfSize, halfSize, -halfSize);
+        corners[6] = new Vector3(halfSize, halfSize, halfSize);
+        corners[7] = new Vector3(-halfSize, halfSize, halfSize);
+
+        // Draw the grid cube
+        lineRenderer.positionCount = 16;
+        // Bottom face
+        lineRenderer.SetPosition(0, transform.TransformPoint(corners[0]));
+        lineRenderer.SetPosition(1, transform.TransformPoint(corners[1]));
+        lineRenderer.SetPosition(2, transform.TransformPoint(corners[2]));
+        lineRenderer.SetPosition(3, transform.TransformPoint(corners[3]));
+        lineRenderer.SetPosition(4, transform.TransformPoint(corners[0]));
+        // Connect to top face
+        lineRenderer.SetPosition(5, transform.TransformPoint(corners[4]));
+        // Top face
+        lineRenderer.SetPosition(6, transform.TransformPoint(corners[5]));
+        lineRenderer.SetPosition(7, transform.TransformPoint(corners[6]));
+        lineRenderer.SetPosition(8, transform.TransformPoint(corners[7]));
+        lineRenderer.SetPosition(9, transform.TransformPoint(corners[4]));
+        // Connect remaining edges
+        lineRenderer.SetPosition(10, transform.TransformPoint(corners[5]));
+        lineRenderer.SetPosition(11, transform.TransformPoint(corners[1]));
+        lineRenderer.SetPosition(12, transform.TransformPoint(corners[2]));
+        lineRenderer.SetPosition(13, transform.TransformPoint(corners[6]));
+        lineRenderer.SetPosition(14, transform.TransformPoint(corners[7]));
+        lineRenderer.SetPosition(15, transform.TransformPoint(corners[3]));
+    }
+
+    private void CreateAxes()
+    {
+        // Create axes for orientation
+        float axisLength = gridSize * cellSize;
+        
+        // X Axis (Red)
+        CreateAxisLine("XAxis", Vector3.zero, Vector3.right * axisLength, Color.red);
+        
+        // Y Axis (Green)
+        CreateAxisLine("YAxis", Vector3.zero, Vector3.up * axisLength, Color.green);
+        
+        // Z Axis (Blue)
+        CreateAxisLine("ZAxis", Vector3.zero, Vector3.forward * axisLength, Color.blue);
+    }
+
+    private void CreateAxisLine(string name, Vector3 start, Vector3 end, Color color)
+    {
+        GameObject axis = new GameObject(name);
+        axis.transform.SetParent(debugContainer);
+        axis.transform.localPosition = Vector3.zero;
+
+        LineRenderer lineRenderer = axis.AddComponent<LineRenderer>();
+        SetupLineRenderer(lineRenderer, color, lineWidth);
+
+        lineRenderer.positionCount = 2;
+        lineRenderer.SetPosition(0, transform.TransformPoint(start));
+        lineRenderer.SetPosition(1, transform.TransformPoint(end));
+    }
+
+    private void CreateCellVisuals()
+    {
+        if (occupiedCells == null)
+            return;
+
+        // Create container for cells
+        GameObject cellsContainer = new GameObject("Cells");
+        cellsContainer.transform.SetParent(debugContainer);
+        cellsContainer.transform.localPosition = Vector3.zero;
+
+        // Draw individual cells
+        for (int x = 0; x < gridSize; x++)
+        {
+            for (int y = 0; y < gridSize; y++)
+            {
+                for (int z = 0; z < gridSize; z++)
+                {
+                    Vector3 cellCenter = new Vector3(
+                        (x - gridSize / 2) * cellSize,
+                        (y - gridSize / 2) * cellSize,
+                        (z - gridSize / 2) * cellSize
+                    );
+
+                    // Only draw cells that are occupied to avoid clutter
+                    if (occupiedCells[x, y, z])
+                    {
+                        CreateCellCube(cellsContainer.transform, cellCenter, Color.red, x, y, z);
+                    }
+                }
+            }
+        }
+    }
+
+    private void CreateCellCube(Transform parent, Vector3 center, Color color, int x, int y, int z)
+    {
+        string cellName = $"Cell_{x}_{y}_{z}";
+        GameObject cell = new GameObject(cellName);
+        cell.transform.SetParent(parent);
+        cell.transform.localPosition = Vector3.zero;
+
+        LineRenderer lineRenderer = cell.AddComponent<LineRenderer>();
+        SetupLineRenderer(lineRenderer, color, lineWidth * 0.8f);
+
+        // Calculate the cell corners
+        float halfCell = cellSize * 0.45f; // Slightly smaller than the actual cell
+        Vector3[] corners = new Vector3[8];
+        corners[0] = center + new Vector3(-halfCell, -halfCell, -halfCell);
+        corners[1] = center + new Vector3(halfCell, -halfCell, -halfCell);
+        corners[2] = center + new Vector3(halfCell, -halfCell, halfCell);
+        corners[3] = center + new Vector3(-halfCell, -halfCell, halfCell);
+        corners[4] = center + new Vector3(-halfCell, halfCell, -halfCell);
+        corners[5] = center + new Vector3(halfCell, halfCell, -halfCell);
+        corners[6] = center + new Vector3(halfCell, halfCell, halfCell);
+        corners[7] = center + new Vector3(-halfCell, halfCell, halfCell);
+
+        // Draw the cell cube
+        lineRenderer.positionCount = 16;
+        // Bottom face
+        lineRenderer.SetPosition(0, transform.TransformPoint(corners[0]));
+        lineRenderer.SetPosition(1, transform.TransformPoint(corners[1]));
+        lineRenderer.SetPosition(2, transform.TransformPoint(corners[2]));
+        lineRenderer.SetPosition(3, transform.TransformPoint(corners[3]));
+        lineRenderer.SetPosition(4, transform.TransformPoint(corners[0]));
+        // Connect to top face
+        lineRenderer.SetPosition(5, transform.TransformPoint(corners[4]));
+        // Top face
+        lineRenderer.SetPosition(6, transform.TransformPoint(corners[5]));
+        lineRenderer.SetPosition(7, transform.TransformPoint(corners[6]));
+        lineRenderer.SetPosition(8, transform.TransformPoint(corners[7]));
+        lineRenderer.SetPosition(9, transform.TransformPoint(corners[4]));
+        // Connect remaining edges
+        lineRenderer.SetPosition(10, transform.TransformPoint(corners[5]));
+        lineRenderer.SetPosition(11, transform.TransformPoint(corners[1]));
+        lineRenderer.SetPosition(12, transform.TransformPoint(corners[2]));
+        lineRenderer.SetPosition(13, transform.TransformPoint(corners[6]));
+        lineRenderer.SetPosition(14, transform.TransformPoint(corners[7]));
+        lineRenderer.SetPosition(15, transform.TransformPoint(corners[3]));
+    }
+
+    private void SetupLineRenderer(LineRenderer lineRenderer, Color color, float width)
+    {
+        // Configure the LineRenderer
+        lineRenderer.material = lineRendererMaterial != null ? lineRendererMaterial : new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+        lineRenderer.startColor = color;
+        lineRenderer.endColor = color;
+        lineRenderer.startWidth = width;
+        lineRenderer.endWidth = width;
+        lineRenderer.useWorldSpace = true;
+    }
+
+    private void DrawDebugGrid()
+    {
+        // Calculate world offset from center
+        Vector3 offset = new Vector3(
+            -gridSize * cellSize / 2,
+            -gridSize * cellSize / 2,
+            -gridSize * cellSize / 2
+        );
+        
+        // Draw the overall grid bounds with a thicker line
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireCube(transform.position, Vector3.one * gridSize * cellSize);
+        
+        // Draw grid axes for better orientation
+        DrawGridAxes();
+        
+        // Draw individual cells
+        for (int x = 0; x < gridSize; x++)
+        {
+            for (int y = 0; y < gridSize; y++)
+            {
+                for (int z = 0; z < gridSize; z++)
+                {
+                    Vector3 cellCenter = new Vector3(
+                        (x - gridSize / 2) * cellSize,
+                        (y - gridSize / 2) * cellSize,
+                        (z - gridSize / 2) * cellSize
+                    );
+                    
+                    Vector3 worldPos = transform.position + cellCenter;
+                    
+                    // Set color based on occupancy
+                    if (occupiedCells != null && occupiedCells.GetLength(0) > x && occupiedCells.GetLength(1) > y && occupiedCells.GetLength(2) > z)
+                    {
+                        if (occupiedCells[x, y, z])
+                        {
+                            // Occupied cell - bright red
+                            Gizmos.color = new Color(1, 0, 0, 0.7f);
+                            Gizmos.DrawCube(worldPos, Vector3.one * cellSize * 0.4f);
+                            Gizmos.color = Color.red;
+                            Gizmos.DrawWireCube(worldPos, Vector3.one * cellSize * 0.9f);
+                        }
+                        else
+                        {
+                            // Unoccupied cell - cyan wireframe
+                            Gizmos.color = Color.cyan;
+                            Gizmos.DrawWireCube(worldPos, Vector3.one * cellSize * 0.9f);
+                        }
+                        
+                        // Draw coordinate text for better reference
+                        if (x == 0 || y == 0 || z == 0 || x == gridSize-1 || y == gridSize-1 || z == gridSize-1)
+                        {
+                            DrawDebugCoordinates(worldPos, new Vector3Int(x, y, z));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private void DrawGridAxes()
+    {
+        float axisLength = gridSize * cellSize;
+        
+        // X axis - Red
+        Gizmos.color = Color.red;
+        Gizmos.DrawLine(transform.position, transform.position + Vector3.right * axisLength);
+        
+        // Y axis - Green
+        Gizmos.color = Color.green;
+        Gizmos.DrawLine(transform.position, transform.position + Vector3.up * axisLength);
+        
+        // Z axis - Blue
+        Gizmos.color = Color.blue;
+        Gizmos.DrawLine(transform.position, transform.position + Vector3.forward * axisLength);
+    }
+    
+    private void DrawDebugCoordinates(Vector3 position, Vector3Int coords)
+    {
+#if UNITY_EDITOR
+        UnityEditor.Handles.color = Color.white;
+        // Only show coordinates on edges of the grid
+        if (coords.x == 0 || coords.y == 0 || coords.z == 0 || 
+            coords.x == gridSize-1 || coords.y == gridSize-1 || coords.z == gridSize-1)
+        {
+            // Only show on corners for better visibility
+            if ((coords.x == 0 || coords.x == gridSize-1) && 
+                (coords.y == 0 || coords.y == gridSize-1) && 
+                (coords.z == 0 || coords.z == gridSize-1))
+            {
+                UnityEditor.Handles.Label(position, $"{coords.x},{coords.y},{coords.z}");
+            }
+        }
+#endif
+    }
+
+    // Add a public method to get the first room's position
+    public Vector3 GetFirstRoomPosition()
+    {
+        if (rooms.Count > 0)
+        {
+            // Return the world position of the first room
+            return rooms[0].roomObject.transform.position;
+        }
+        
+        // Default position if no rooms exist
+        return transform.position;
     }
 }

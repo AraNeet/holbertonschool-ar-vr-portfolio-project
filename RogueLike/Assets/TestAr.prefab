@@ -57,7 +57,7 @@ Transform:
   m_GameObject: {fileID: 7576867131100388943}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.58093, y: 2.5, z: 1.36}
+  m_LocalPosition: {x: -0.58093, y: 1.81, z: 1.36}
   m_LocalScale: {x: 6.052293, y: 4.0844, z: 4.1382775}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -78,15 +78,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_CameraStartingPose:
-    position: {x: 0.22, y: 4, z: -0.21}
+    position: {x: 0.22, y: 2, z: -0.21}
     rotation: {x: -0.16794881, y: 0.414527, z: -0.078137435, w: -0.8909855}
   m_CameraMovementBounds:
     m_Center: {x: 0.044999838, y: 0.545, z: 0.00000011920929}
-    m_Extent: {x: 4, y: 4, z: 4}
+    m_Extent: {x: 5, y: 2, z: 5}
   m_DefaultViewPose:
     position: {x: 0, y: 2, z: -1.5}
     rotation: {x: -0.16100603, y: 0.1567927, z: -0.025916385, w: -0.97407466}
-  m_DefaultViewPivot: {x: 2, y: 2, z: 2}
+  m_DefaultViewPivot: {x: 4, y: 1, z: 4}
   m_DefaultViewSize: 1
   m_RenderSettings:
     m_AmbientMode: 1
@@ -163,7 +163,7 @@ PrefabInstance:
     - target: {fileID: 283466522652362624, guid: 0870d4f191e7bd148a8842d8e37aa626,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.34
+      value: -0.696
       objectReference: {fileID: 0}
     - target: {fileID: 283466522652362624, guid: 0870d4f191e7bd148a8842d8e37aa626,
         type: 3}
