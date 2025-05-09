@@ -409,8 +409,10 @@ MonoBehaviour:
   cubePrefab: {fileID: 518344187208757262, guid: ff9dcc231689e504187460ad8ad6227a,
     type: 3}
   cubeSize: 2
-  placementHeight: 6
-  playerPrefab: {fileID: 0}
+  placementHeight: 3
+  playerPrefab: {fileID: 302451645352697665, guid: 187b7f1773e62464681deed106059e21,
+    type: 3}
+  playerScale: 0.05
   placementIndicator: {fileID: 0}
   instructionPanel: {fileID: 0}
 --- !u!1 &1282683013

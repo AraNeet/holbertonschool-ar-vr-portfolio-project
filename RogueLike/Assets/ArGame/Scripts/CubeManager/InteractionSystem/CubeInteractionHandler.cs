@@ -56,7 +56,7 @@ public class CubeInteractionHandler : MonoBehaviour
 
                         // Apply rotation based on touch movement
                         targetRotation *= Quaternion.Euler(
-                            -delta.y * rotationSpeed,
+                            0,
                             delta.x * rotationSpeed,
                             0);
 
@@ -120,7 +120,7 @@ public class CubeInteractionHandler : MonoBehaviour
     public void HandleManualRotation(Vector2 delta)
     {
         targetRotation *= Quaternion.Euler(
-            -delta.y * rotationSpeed * 0.1f,
+            0,
             delta.x * rotationSpeed * 0.1f,
             0);
     }

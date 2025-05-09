@@ -65,7 +65,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 14552ad2a5dbd9f44b2f50db08e2ead7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cubeLayers: []
+  cubeLayers:
+  - {fileID: 1328818605075283502, guid: e788181f415ac0a499d288748b592a4d, type: 3}
   peelDuration: 0.3
   maxPeelDistance: 0.5
 --- !u!114 &7160542026305100252
@@ -101,14 +102,17 @@ MonoBehaviour:
   cellSize: 0.2
   roomPrefab: {fileID: 6638742607367543590, guid: 6b91e5923e9c7a34088dea575f2e6101,
     type: 3}
-  corridorPrefab: {fileID: 6638742607367543590, guid: 6b91e5923e9c7a34088dea575f2e6101,
+  corridorPrefab: {fileID: 1328818605075283502, guid: e788181f415ac0a499d288748b592a4d,
+    type: 3}
+  verticalCorridorPrefab: {fileID: 2162495885996812077, guid: 58697f433cc3ff24e9f47dfcb415dea7,
     type: 3}
   enemyPrefab: {fileID: 0}
   treasurePrefab: {fileID: 0}
-  minRooms: 10
-  maxRooms: 20
+  minRooms: 15
+  maxRooms: 25
   enemySpawnChance: 0.3
   treasureSpawnChance: 0.2
+  enableRoomBarriers: 1
   debug: 1
   lineRendererMaterial: {fileID: 2100000, guid: 0089caa46e9733d4e9d34ad8c2e1e2e2,
     type: 2}
