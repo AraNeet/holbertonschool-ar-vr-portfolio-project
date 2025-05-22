@@ -6,19 +6,20 @@ An AR Rogue-Game
 This project is the final portfolio submission for my AR/VR Specialization. Phantom Rift is a mobile AR roguelike game developed in Unity, where players physically follow a procedurally generated character battling waves of enemies in real-world environments. The game was designed and built to demonstrate practical application of AR Foundation, procedural game design, and user-focused AR interaction.
 
 
-## Two-Week Progress EvaluationProgress So Far
+## Two-Week Progress Evaluation
+  ## Progress So Far
   Project Setup: Initialized the project repository and set up the development environment.
   Asset Integration: Documented required assets and prepared placeholders for integration.
   Core Systems: Began implementing player controls and basic game mechanics.
   Level System: Started work on the procedural level generation system.
   Major Blocker
-  Procedural Level Generation:
+  ## Procedural Level Generation:
   My main blocker has been creating a level system that generates a new, unique layout for each run. I encountered challenges with:
 
   Designing an algorithm that produces varied and playable levels.
   Ensuring that generated levels are both interesting and functional (e.g., all areas are accessible, no dead ends that trap the player).
   Integrating asset placement within the generated levels.
-  Milestones
+  ## Milestones
   Week 1: Project setup, asset documentation, and initial player controls. (Completed)
   Week 2: Prototype of the procedural level generation system. (In Progress)
   Upcoming:
